@@ -3,8 +3,12 @@ const route = express.Router();
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken');
 const db = require('../models');
+require('dotenv').config();
 const userController = require('../controller/userController');
 const validator = require('fastest-validator')
+// const mailgun = require("mailgun-js");
+// const DOMAIN = 'sandboxe1292ac2b9394d23bf30c76210869acf.mailgun.org';
+// const mg = mailgun({ apiKey: process.env.MAILGUN_APIKEY, domain: DOMAIN });
 
 const v = new validator();
 
@@ -12,68 +16,128 @@ const schema = {
     name: { type: "string", min: 3, max: 255, optional: false },
 }
 
+// exports.signup = (req,res) => {
 
-exports.signup = (req,res) => {
- 
-    db.user.findOne( {
+//     db.user.findOne( {
+//         where: {
+//             email: req.body.email
+//         }
+//     }).then((result) => {
+//         if (result) {
+//             res.status(409).json({
+//                 message : 'Email already exist'
+//             })
+//         } else {
+//             bcrypt.genSalt(10, (err,salt) => {
+//                 bcrypt.hash(req.body.password,salt, (err,hash) => {
+
+//                         const user = {
+//                             name : req.body.name,
+//                             email : req.body.email,
+//                             password : hash,
+//                             contact : parseInt(req.body.contact)
+//                         };
+//                         const validationResponse = v.validate(user, schema)
+//                         if (validationResponse === true) {
+//                             db.user.create(user).then((data) => {
+//                                 res.send('Registeration Successful')
+//                             }).catch(err => {
+//                                 res.send("error" + err)
+//                             })        
+//                         } else {
+//                             res.json({
+//                                 message : validationResponse[0].message
+//                             });
+//                         }
+//                 });
+//             });
+//         }
+//     }).catch(err => {
+//         res.status(500).json({
+//             message : 'Something went wrong'
+//         });
+//     });
+// }
+
+//signUp with email verification
+exports.signup = (req, res) => {
+    db.user.findOne({
         where: {
             email: req.body.email
         }
     }).then((result) => {
         if (result) {
             res.status(409).json({
-                message : 'Email already exist'
+                message: 'Email already exist'
             })
         } else {
-            bcrypt.genSalt(10, (err,salt) => {
-                bcrypt.hash(req.body.password,salt, (err,hash) => {
-                   
-                        const user = {
-                            name : req.body.name,
-                            email : req.body.email,
-                            password : hash,
-                            contact : parseInt(req.body.contact)
-                        };
-                        const validationResponse = v.validate(user, schema)
-                        if (validationResponse === true) {
-                            db.user.create(user).then((data) => {
-                                res.send('Registeration Successful')
-                            }).catch(err => {
-                                res.send("error" + err)
-                            })        
-                        } else {
-                            res.json({
-                                message : validationResponse[0].message
-                            });
-                        }
+            // const data = {
+            //     from: 'noreply@me.com',
+            //     to: req.body.email,
+            //     subject: 'Hello',
+            //     text: 'Testing some Mailgun awesomness!'
+            // };
+            // mg.messages().send(data, function (error, body) {
+            //     console.log(body);
+            // });
+
+
+
+
+
+            bcrypt.genSalt(10, (err, salt) => {
+                bcrypt.hash(req.body.password, salt, (err, hash) => {
+                    const user = {
+                        name: req.body.name,
+                        email: req.body.email,
+                        password: hash,
+                        contact: parseInt(req.body.contact)
+                    };
+                    const validationResponse = v.validate(user, schema)
+                    if (validationResponse === true) {
+                        db.user.create(user).then((data) => {
+                            res.send('Registeration Successful')
+                        }).catch(err => {
+                            res.send("error" + err)
+                        })
+                    } else {
+                        res.json({
+                            message: validationResponse[0].message
+                        });
+                    }
                 });
             });
         }
     }).catch(err => {
         res.status(500).json({
-            message : 'Something went wrong'
+            message: 'Something went wrong'
         });
     });
 }
 
-exports.login = (req,res) => {
+
+
+
+
+
+exports.login = (req, res) => {
     db.user.findOne({
         where: {
             email: req.body.email
         }
     }).then((userresult) => {
-        if(userresult === null ) {
+        if (userresult === null) {
             res.status(401).json({
                 message: "Invalid Credential"
             });
         } else {
-            bcrypt.compare(req.body.password, userresult.password, (err,result) => {
-                if(result) {
+            bcrypt.compare(req.body.password, userresult.password, (err, result) => {
+                if (result) {
                     const token = jwt.sign({
-                        email : userresult.email,
-                        userId : userresult.id,
+                        email: userresult.email,
+                        userId: userresult.id,
                         expiresIn: "24h"
-                    }, 'secret', (error,token) => {
+                    }, 'secret', (error, token) => {
                         res.status(200).json({
                             message: "Authentication Successful",
                             token: token
